@@ -1,10 +1,9 @@
 function plot_rgb_bubble(varargin)
 % SYNTAX
-%   plot_rgb_bubble('Image', img, Name, Value, ...)
-%   plot_rgb_bubble('Center', center, Name, Value, ...)
-%   plot_rgb_bubble('Center', center, 'Size', size, ...)
-%   plot_rgb_bubble('Center', center, 'Color', color, Name, Value, ...)
-%   plot_rgb_bubble('Center', center, 'Size', size, 'Color', color, Name, Value, ...)
+%   plot_rgb_bubble(img, Name, Value, ...)
+%   plot_rgb_bubble([], center, Name, Value, ...)
+%   plot_rgb_bubble([], center, size, ...)
+%   plot_rgb_bubble([], center, size, color, Name, Value, ...)
 %
 % If 'Image' is set, this function will ignore 'Center', 'Size', and 'Color' options.
 %
@@ -23,7 +22,7 @@ function plot_rgb_bubble(varargin)
 %   'GridAlpha':        3-length vector
 
 p0 = inputParser;
-p0.addOptional('Image', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]}));
+p0.addOptional('Image', [], @validate_image);
 p0.addOptional('Center', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, 3]}));
 p0.addOptional('Size', [], @(x) validateattributes(x, {'numeric'}, {'vector'}));
 p0.addOptional('Color', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, 3]}));
@@ -82,4 +81,15 @@ set(gca, 'XLim', [0, 1], 'YLim', [0, 1], 'ZLim', [0, 1], ...
     'FontSize', 14);
 set(gca, 'GridColor', p0.Results.GridColor, 'GridAlpha', p0.Results.GridAlpha, 'Color', 'none', ...
     'Projection', 'perspective');
+end
+
+
+function res = validate_image(x)
+if isempty(x)
+    res = true;
+    return;
+else
+    res = true;
+    validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]});
+end
 end
