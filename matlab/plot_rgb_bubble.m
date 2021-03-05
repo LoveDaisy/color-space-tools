@@ -1,10 +1,19 @@
-function plot_rgb_bubble(img, varargin)
+function plot_rgb_bubble(varargin)
 % SYNTAX
-%   plot_rgb_bubble(img)
-%   plot_rgb_bubble(img, Name, Value, ...)
-% where
-%   img:            m*n*3 image. It is treated as RGB image.
+%   plot_rgb_bubble('Image', img, Name, Value, ...)
+%   plot_rgb_bubble('Center', center, Name, Value, ...)
+%   plot_rgb_bubble('Center', center, 'Size', size, ...)
+%   plot_rgb_bubble('Center', center, 'Color', color, Name, Value, ...)
+%   plot_rgb_bubble('Center', center, 'Size', size, 'Color', color, Name, Value, ...)
+%
+% If 'Image' is set, this function will ignore 'Center', 'Size', and 'Color' options.
+%
 % name-value options
+%   'Image':            m*n*3 image
+%   'Center':           m*3 bubble center
+%   'Size':             m-length bubble size, can be empty
+%   'Color':            m*3 bubble color, can be empty
+%
 %   'BinNum':           integer, default 20
 %   'BubbleScale':      scalar, default 2e4
 %   'SubsampleStep':    integer, default 20
@@ -13,45 +22,64 @@ function plot_rgb_bubble(img, varargin)
 %   'GridColor':        3-length vector
 %   'GridAlpha':        3-length vector
 
-p = inputParser;
-p.addRequired('img', @(x) validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]}));
-p.addOptional('BinNum', 20, @(x) validateattributes(x, {'numeric'}, {'integer'}));
-p.addOptional('BubbleScale', 2e4, @(x) validateattributes(x, {'numeric'}, {'positive'}));
-p.addOptional('SubsampleStep', 20, @(x) validateattributes(x, {'numeric'}, {'integer'}));
-p.addOptional('Background', [13, 13, 13] / 255, @(x) validateattributes(x, {'numeric'}, ...
-    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
-p.addOptional('AxisColor', [1, 1, 1] * 0.75, @(x) validateattributes(x, {'numeric'}, ...
-    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
-p.addOptional('GridColor', [1, 1, 1], @(x) validateattributes(x, {'numeric'}, ...
-    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
-p.addOptional('GridAlpha', 0.2, @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
-p.parse(img, varargin{:});
+p0 = inputParser;
+p0.addOptional('Image', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]}));
+p0.addOptional('Center', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, 3]}));
+p0.addOptional('Size', [], @(x) validateattributes(x, {'numeric'}, {'vector'}));
+p0.addOptional('Color', [], @(x) validateattributes(x, {'numeric'}, {'size', [NaN, 3]}));
 
-img_vec = reshape(img, [], 3);
-img_vec = img_vec(1:p.Results.SubsampleStep:end, :);
+p0.addOptional('BinNum', 20, @(x) validateattributes(x, {'numeric'}, {'integer'}));
+p0.addOptional('BubbleScale', 2e4, @(x) validateattributes(x, {'numeric'}, {'positive'}));
+p0.addOptional('SubsampleStep', 20, @(x) validateattributes(x, {'numeric'}, {'integer'}));
+p0.addOptional('Background', [13, 13, 13] / 255, @(x) validateattributes(x, {'numeric'}, ...
+    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
+p0.addOptional('AxisColor', [1, 1, 1] * 0.75, @(x) validateattributes(x, {'numeric'}, ...
+    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
+p0.addOptional('GridColor', [1, 1, 1], @(x) validateattributes(x, {'numeric'}, ...
+    {'vector', 'numel', 3, '>=', 0, '<=', 1}));
+p0.addOptional('GridAlpha', 0.2, @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
+p0.parse(varargin{:});
 
-bin_size = 1 / p.Results.BinNum;
-img_subs = min(floor(img_vec / bin_size) + 1, p.Results.BinNum);
-img_ind = sub2ind([1, 1, 1] * p.Results.BinNum, img_subs(:, 1), img_subs(:, 2), img_subs(:, 3));
+if ~isempty(p0.Results.Image)
+    [bin_colors, bin_cnt] = rgb_hist3_count(p0.Results.Image, 'BinNum', p0.Results.BinNum, ...
+        'SubsampleStep', p0.Results.SubsampleStep);
+    bin_cnt = bin_cnt / sum(bin_cnt(:)) * p0.Results.BubbleScale;
+    bin_size = 1 / p0.Results.BinNum;
+    bin_centers_offset = randn(size(bin_colors)) * bin_size * 0.2;
+    bin_centers = bin_colors + bin_centers_offset;
+elseif ~isempty(p0.Results.Center)
+    bin_centers = p0.Results.Center;
+    total_bin_num = size(bin_centers, 1);
+    if ~isempty(p0.Results.Size)
+        bin_cnt = p0.Results.Size;
+        if length(bin_cnt) ~= total_bin_num
+            error('Size must be the same length as Center!');
+        end
+    else
+        bin_cnt = ones(total_bin_num, 1) * 10;
+    end
 
-bin_cnt = accumarray(img_ind, 1, [p.Results.BinNum ^ 3, 1]);
-valid_bin_ind = bin_cnt > 0;
-bin_ind = find(valid_bin_ind);
-bin_cnt = bin_cnt(valid_bin_ind);
-bin_cnt = bin_cnt / sum(bin_cnt(:));
-[bin_subs1, bin_subs2, bin_subs3] = ind2sub([1, 1, 1] * p.Results.BinNum, bin_ind);
-bin_centers_offset = randn(size(bin_subs1, 1), 3) * bin_size * 0.2;
-bin_centers = ([bin_subs1, bin_subs2, bin_subs3] - 1) * bin_size + bin_centers_offset;
-bin_colors = bin_centers - bin_centers_offset;
+    if ~isempty(p0.Results.Color)
+        bin_colors = p0.Results.Color;
+        if size(bin_colors, 1) ~= total_bin_num
+            error('Color must be the same length as Center!');
+        end
+    else
+        color_map = colormap('lines');
+        bin_colors = repmat(color_map(1, :), total_bin_num, 1);
+    end
+else
+    error('Image & Center cannot be all empty!');
+end
 
 scatter3(bin_centers(:, 1), bin_centers(:, 2), bin_centers(:, 3), ...
-    bin_cnt * p.Results.BubbleScale, bin_colors, 'fill');
+    bin_cnt, bin_colors, 'fill');
 axis equal;
-set(gcf, 'Color', p.Results.Background, 'InvertHardCopy', 'off');
+set(gcf, 'Color', p0.Results.Background, 'InvertHardCopy', 'off');
 set(gca, 'XLim', [0, 1], 'YLim', [0, 1], 'ZLim', [0, 1], ...
     'XTick', 0:.2:1, 'YTick', 0:.2:1, 'ZTick', 0:.2:1, ...
-    'XColor', p.Results.AxisColor, 'YColor', p.Results.AxisColor, 'ZColor', p.Results.AxisColor, ...
+    'XColor', p0.Results.AxisColor, 'YColor', p0.Results.AxisColor, 'ZColor', p0.Results.AxisColor, ...
     'FontSize', 14);
-set(gca, 'GridColor', p.Results.GridColor, 'GridAlpha', p.Results.GridAlpha, 'Color', 'none', ...
+set(gca, 'GridColor', p0.Results.GridColor, 'GridAlpha', p0.Results.GridAlpha, 'Color', 'none', ...
     'Projection', 'perspective');
 end
