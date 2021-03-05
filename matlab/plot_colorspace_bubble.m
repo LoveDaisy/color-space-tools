@@ -1,4 +1,4 @@
-function plot_rgb_bubble(varargin)
+function plot_colorspace_bubble(varargin)
 % SYNTAX
 %   plot_rgb_bubble(img, Name, Value, ...)
 %   plot_rgb_bubble([], center, Name, Value, ...)
