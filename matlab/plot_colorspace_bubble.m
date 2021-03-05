@@ -85,11 +85,10 @@ end
 
 
 function res = validate_image(x)
+res = true;
 if isempty(x)
-    res = true;
     return;
 else
-    res = true;
     validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]});
 end
 end
