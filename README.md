@@ -33,7 +33,7 @@ set(gcf, 'position', [800, 200, 500, 560]);
 
 axes('position', [0, 0, 1, 1]);
 plot_colorspace_bubble(img, 'Background', [1, 1, 1] * 0.23, 'TargetSpace', 'Lab');
-set(gca, 'CameraViewAngle', 23, 'CameraPosition', [5.0, 1.2, 1.6]*180);
+set(gca, 'CameraViewAngle', 23, 'CameraPosition', [5.0, 1.2, 1.6] * 100);
 
 axes('position', [0.58, 0.76, 0.4, 0.225]);
 imshow(img);
