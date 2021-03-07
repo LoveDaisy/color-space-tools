@@ -19,4 +19,6 @@ axes('position', [0.58, 0.76, 0.4, 0.225]);
 imshow(img);
 ~~~
 
+<p align='center'>
 <img src='img/rgb_bubble.jpg' width=500>
+</p>
