@@ -23,6 +23,7 @@ function plot_colorspace_bubble(varargin)
 %
 %   'TargetSpace':      string, can be one of following (case insensitive, default is 'RGB'):
 %                       {'RGB', 'Lab'}
+%   'ShowRgbGamut':     {false} | true
 
 p0 = inputParser;
 p0.addOptional('Image', [], @validate_image);
@@ -42,6 +43,7 @@ p0.addOptional('GridColor', [1, 1, 1], @(x) validateattributes(x, {'numeric'}, .
 p0.addOptional('GridAlpha', 0.2, @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
 
 p0.addOptional('TargetSpace', 'RGB', @(x) any(validatestring(x, {'RGB', 'Lab'})));
+p0.addOptional('ShowRgbGamut', false, @(x) validateattributes(x, {'logical'}, {'scalar'}));
 p0.parse(varargin{:});
 
 if ~isempty(p0.Results.Image)
@@ -78,10 +80,14 @@ end
 
 [ax, bin_centers] = convert_space(p0.Results.TargetSpace, bin_centers);
 
+set(gcf, 'Color', p0.Results.Background, 'InvertHardCopy', 'off');
+if ~strcmpi(p0.Results.TargetSpace, 'RGB') && p0.Results.ShowRgbGamut
+    show_rgb_gamut(p0);
+end
 scatter3(bin_centers(:, 1), bin_centers(:, 2), bin_centers(:, 3), ...
     bin_cnt, bin_colors, 'fill');
+grid on;
 axis equal;
-set(gcf, 'Color', p0.Results.Background, 'InvertHardCopy', 'off');
 set(gca, 'XLim', ax.x_lim, 'YLim', ax.y_lim, 'ZLim', ax.z_lim, ...
     'XTick', ax.x_tick, 'YTick', ax.y_tick, 'ZTick', ax.z_tick, ...
     'XColor', p0.Results.AxisColor, 'YColor', p0.Results.AxisColor, 'ZColor', p0.Results.AxisColor, ...
@@ -101,6 +107,34 @@ end
 end
 
 
+function show_rgb_gamut(p0)
+if strcmpi(p0.Results.TargetSpace, 'Lab')
+    hold on;
+    xq = linspace(0, 1, 100);
+    line_color = p0.Results.GridColor * p0.Results.GridAlpha + p0.Results.Background * (1 - p0.Results.GridAlpha);
+    vtx = [0, 0, 0, 1, 0, 0;
+        0, 0, 0, 0, 1, 0;
+        0, 0, 0, 0, 0, 1;
+        1, 0, 0, 1, 0, 1;
+        1, 0, 0, 1, 1, 0;
+        0, 1, 0, 0, 1, 1;
+        0, 1, 0, 1, 1, 0;
+        0, 0, 1, 0, 1, 1;
+        0, 0, 1, 1, 0, 1;
+        1, 0, 1, 1, 1, 1;
+        0, 1, 1, 1, 1, 1;
+        1, 1, 0, 1, 1, 1];
+    for i = 1:size(vtx, 1)
+        grid_pts = interp1([0, 1], [vtx(i, 1:3); vtx(i, 4:6)], xq);
+        grid_pts = rgb2lab(grid_pts);
+        plot3(grid_pts(:, 2), grid_pts(:, 3), grid_pts(:, 1), ':', 'Color', line_color, ...
+            'LineWidth', 2);
+        set(gca, 'Color', 'none');
+    end
+end
+end
+
+
 function [ax, bin_centers] = convert_space(target_space, bin_centers)
 % Default space is RGB
 ax.x_lim = [0, 1];
@@ -113,13 +147,8 @@ if strcmpi(target_space, 'Lab')
     bin_centers = rgb2lab(bin_centers);
     bin_centers = [bin_centers(:, 2:3), bin_centers(:, 1)];
 
-    ab_max = max(bin_centers(:, 1:2));
-    ab_min = min(bin_centers(:, 1:2));
-
-    ax_grid_num = min(ceil(max(abs([ab_max, ab_min])) / 32), 4);
-
-    ax.x_lim = [-1, 1] * ax_grid_num * 32;
-    ax.y_lim = [-1, 1] * ax_grid_num * 32;
+    ax.x_lim = [-1, 1] * 128;
+    ax.y_lim = [-1, 1] * 128;
     ax.z_lim = [0, 100];
     ax.x_tick = -128:32:128;
     ax.y_tick = -128:32:128;
