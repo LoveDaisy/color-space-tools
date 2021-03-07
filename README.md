@@ -19,4 +19,4 @@ axes('position', [0.58, 0.76, 0.4, 0.225]);
 imshow(img);
 ~~~
 
-![RGB bubble chart](img/rgb_bubble.jpg)
+<img src='img/rgb_bubble.jpg' width=500>
