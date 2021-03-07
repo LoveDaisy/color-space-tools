@@ -20,6 +20,9 @@ function plot_colorspace_bubble(varargin)
 %   'AxisColor':        3-length vector
 %   'GridColor':        3-length vector
 %   'GridAlpha':        3-length vector
+%
+%   'TargetSpace':      string, can be one of following (case insensitive, default is 'RGB'):
+%                       {'RGB', 'Lab'}
 
 p0 = inputParser;
 p0.addOptional('Image', [], @validate_image);
@@ -37,6 +40,8 @@ p0.addOptional('AxisColor', [1, 1, 1] * 0.75, @(x) validateattributes(x, {'numer
 p0.addOptional('GridColor', [1, 1, 1], @(x) validateattributes(x, {'numeric'}, ...
     {'vector', 'numel', 3, '>=', 0, '<=', 1}));
 p0.addOptional('GridAlpha', 0.2, @(x) validateattributes(x, {'numeric'}, {'scalar', '>=', 0, '<=', 1}));
+
+p0.addOptional('TargetSpace', 'RGB', @(x) any(validatestring(x, {'RGB', 'Lab'})));
 p0.parse(varargin{:});
 
 if ~isempty(p0.Results.Image)
@@ -71,12 +76,29 @@ else
     error('Image & Center cannot be all empty!');
 end
 
+x_lim = [0, 1];
+y_lim = [0, 1];
+z_lim = [0, 1];
+x_tick = 0:.2:1;
+y_tick = 0:.2:1;
+z_tick = 0:.2:1;
+if strcmpi(p0.Results.TargetSpace, 'Lab')
+    bin_centers = rgb2lab(bin_centers);
+    bin_centers = [bin_centers(:, 2:3), bin_centers(:, 1)];
+    x_lim = [-128, 128];
+    y_lim = [-128, 128];
+    z_lim = [0, 100];
+    x_tick = -128:32:128;
+    y_tick = -128:32:128;
+    z_tick = 0:20:100;
+end
+
 scatter3(bin_centers(:, 1), bin_centers(:, 2), bin_centers(:, 3), ...
     bin_cnt, bin_colors, 'fill');
 axis equal;
 set(gcf, 'Color', p0.Results.Background, 'InvertHardCopy', 'off');
-set(gca, 'XLim', [0, 1], 'YLim', [0, 1], 'ZLim', [0, 1], ...
-    'XTick', 0:.2:1, 'YTick', 0:.2:1, 'ZTick', 0:.2:1, ...
+set(gca, 'XLim', x_lim, 'YLim', y_lim, 'ZLim', z_lim, ...
+    'XTick', x_tick, 'YTick', y_tick, 'ZTick', z_tick, ...
     'XColor', p0.Results.AxisColor, 'YColor', p0.Results.AxisColor, 'ZColor', p0.Results.AxisColor, ...
     'FontSize', 14);
 set(gca, 'GridColor', p0.Results.GridColor, 'GridAlpha', p0.Results.GridAlpha, 'Color', 'none', ...
