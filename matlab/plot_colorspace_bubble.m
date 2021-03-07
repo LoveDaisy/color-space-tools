@@ -76,29 +76,14 @@ else
     error('Image & Center cannot be all empty!');
 end
 
-x_lim = [0, 1];
-y_lim = [0, 1];
-z_lim = [0, 1];
-x_tick = 0:.2:1;
-y_tick = 0:.2:1;
-z_tick = 0:.2:1;
-if strcmpi(p0.Results.TargetSpace, 'Lab')
-    bin_centers = rgb2lab(bin_centers);
-    bin_centers = [bin_centers(:, 2:3), bin_centers(:, 1)];
-    x_lim = [-128, 128];
-    y_lim = [-128, 128];
-    z_lim = [0, 100];
-    x_tick = -128:32:128;
-    y_tick = -128:32:128;
-    z_tick = 0:20:100;
-end
+[ax, bin_centers] = convert_space(p0.Results.TargetSpace, bin_centers);
 
 scatter3(bin_centers(:, 1), bin_centers(:, 2), bin_centers(:, 3), ...
     bin_cnt, bin_colors, 'fill');
 axis equal;
 set(gcf, 'Color', p0.Results.Background, 'InvertHardCopy', 'off');
-set(gca, 'XLim', x_lim, 'YLim', y_lim, 'ZLim', z_lim, ...
-    'XTick', x_tick, 'YTick', y_tick, 'ZTick', z_tick, ...
+set(gca, 'XLim', ax.x_lim, 'YLim', ax.y_lim, 'ZLim', ax.z_lim, ...
+    'XTick', ax.x_tick, 'YTick', ax.y_tick, 'ZTick', ax.z_tick, ...
     'XColor', p0.Results.AxisColor, 'YColor', p0.Results.AxisColor, 'ZColor', p0.Results.AxisColor, ...
     'FontSize', 14);
 set(gca, 'GridColor', p0.Results.GridColor, 'GridAlpha', p0.Results.GridAlpha, 'Color', 'none', ...
@@ -112,5 +97,32 @@ if isempty(x)
     return;
 else
     validateattributes(x, {'numeric'}, {'size', [NaN, NaN, 3]});
+end
+end
+
+
+function [ax, bin_centers] = convert_space(target_space, bin_centers)
+% Default space is RGB
+ax.x_lim = [0, 1];
+ax.y_lim = [0, 1];
+ax.z_lim = [0, 1];
+ax.x_tick = 0:.2:1;
+ax.y_tick = 0:.2:1;
+ax.z_tick = 0:.2:1;
+if strcmpi(target_space, 'Lab')
+    bin_centers = rgb2lab(bin_centers);
+    bin_centers = [bin_centers(:, 2:3), bin_centers(:, 1)];
+
+    ab_max = max(bin_centers(:, 1:2));
+    ab_min = min(bin_centers(:, 1:2));
+
+    ax_grid_num = min(ceil(max(abs([ab_max, ab_min])) / 32), 4);
+
+    ax.x_lim = [-1, 1] * ax_grid_num * 32;
+    ax.y_lim = [-1, 1] * ax_grid_num * 32;
+    ax.z_lim = [0, 100];
+    ax.x_tick = -128:32:128;
+    ax.y_tick = -128:32:128;
+    ax.z_tick = 0:20:100;
 end
 end
