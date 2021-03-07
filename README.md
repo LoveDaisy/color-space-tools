@@ -5,7 +5,7 @@ Only matlab codes now. I'll write some python codes in the future.
 
 ## Examples
 
-Plot a bubble chart for RGB histogram.
+Plot RGB bubble chart for an image.
 
 ~~~matlab
 figure(1); clf;
